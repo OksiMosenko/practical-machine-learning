@@ -33,9 +33,9 @@ The submission should consist of a link to (this) Github repo with the R markdow
 
 Tool: XGBoost, an implementation of tree-based extreme gradient boosting algorithm. A very fast and accurate method to do cross validation, fitting and predicting.
 
-HTML report page (gh-pages)
+To view html report online, please click here.
 
-Please open this GitHub link.
-
-The HTML file is in the gh-pages branch.
-The R markdown file (Rmd) is in the master branch.
+project_report.Rmd: R markdown document for course project report.
+project_report.html: Compiled html file for course project report.
+data: Data folder containing csv files for training and testing sets.
+prediction: Folder containing output of all 20 prediction files.
