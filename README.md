@@ -1,4 +1,4 @@
-# practical-machine-learning
+# Practical Machine Learning
 Coursera's Data Science Specialization, Practical Machine Learning project, Week 4
 
 
@@ -14,7 +14,7 @@ In this project, the goal is to use data from accelerometers on the belt, forear
 They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from 
 the website (see the section on the Weight Lifting Exercise Dataset).
 
-Data
+##Data
 
 The training data for this project are available here. The test data are available here.
 
