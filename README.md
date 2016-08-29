@@ -38,14 +38,12 @@ Due to security concerns with the exchange of R code, your code will not be run 
 
 ##Machine Learning Model
 
-
 To view html report online, please click here.
 
-[project_report.Rmd]{practical-machine-learning/project-report.rmd): R markdown document for course project report.
+[project_report.Rmd](practical-machine-learning/project-report.rmd): R markdown document for course project report.
 
-project_report.html: Compiled html file for course project report.
+[project_report.html](): Compiled html file for course project report.
 
 data: Data folder containing csv files for training and testing sets.
 
-prediction: Folder containing output of all 20 prediction files.
 
