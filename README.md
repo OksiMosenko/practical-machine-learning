@@ -41,7 +41,7 @@ Due to security concerns with the exchange of R code, your code will not be run 
 
 To view html report online, please click here.
 
-project_report.Rmd: R markdown document for course project report.
+[project_report.Rmd]{practical-machine-learning/project-report.rmd): R markdown document for course project report.
 
 project_report.html: Compiled html file for course project report.
 
