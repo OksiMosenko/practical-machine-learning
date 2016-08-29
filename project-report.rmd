@@ -1,0 +1,200 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Lisa Rodgers"
+date: "August 26, 2016"
+output: html_document
+---
+
+###Background
+Using devices such as JawboneUp, NikeFuelBand, and Fitbitit is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.
+
+In this project, the goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+
+###Libraries
+####Load the packages, set caching and seed
+
+The following library where used to create within the report to produce the predictions.
+
+```{r "Loading Libraries", message=FALSE}
+library(Hmisc)
+library(caret)
+
+library(randomForest)
+library(foreach)
+library(doParallel)
+
+knitr::opts_chunk$set(cache=TRUE)
+
+set.seed(223)
+
+```
+
+
+
+
+###Loading Training Data
+
+In the project the [pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) data is actually used to devise training and testing sets. [The pml-test.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv) data is used to predict and answer the 20 questions based on the trained model. Follow the links provided to aquire the needed data file.
+
+```{r "loading the data"}
+
+# URL of the training and testing data
+train.url ="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test.url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+
+# file names
+train.name = "./data/pml-training.csv"
+test.name = "./data/pml-testing.csv"
+
+# if directory does not exist, create new
+if (!file.exists("./data")) {
+  dir.create("./data")
+}
+# if files does not exist, download the files
+if (!file.exists(train.name)) {
+  download.file(train.url, destfile=train.name)
+}
+if (!file.exists(test.name)) {
+  download.file(test.url, destfile=test.name)
+}
+
+# load the CSV files as data.frame 
+train.df = read.csv("./data/pml-training.csv", na.strings=c("#DIV/0!"))
+test.df = read.csv("./data/pml-testing.csv", na.strings=c("#DIV/0!"))
+
+```
+
+
+###Explore The Data
+
+The raw training data has 19622 rows of observations and 160 variables. Column X is unusable row number. While the testing data has 20 rows and the same 160 variables. There is one column of target outcome named classe. 
+
+```{r "Examine Data"}
+dim(train.df)
+dim(test.df)
+names(train.df)
+
+# Checked how many users where in the study.
+unique(train.df$user_name)
+unique(test.df$user_name)
+
+
+```
+
+###Clean the Data
+
+It is a good idea to cast the last 8 columns of data to numerical to help with the prediction in future steps.
+SuppressWarnings() was used to remove the "Warning: NAs introduced by coercion" messages that where produced while converting to numerical. 
+
+```{r "Casting last 8 column to Numerical"}
+# Casted the last 8 column to the end to numerical
+suppressWarnings(for(i in c(8:ncol(train.df)-1)) {train.df[,i] = as.numeric(as.character(train.df[,i]))})
+suppressWarnings(for(i in c(8:ncol(test.df)-1)) {test.df[,i] = as.numeric(as.character(test.df[,i]))})
+
+```
+
+Remove all the blank('""'), '#DIV/0' and 'NA' values need to be converted to 'NA'. Any Columns containing 'NA' will be removed from both downloaded data sets to help the accuracy of the prediction.
+
+```{r "Removing Blanks"}
+#tested Blank data
+table(colSums(is.na(train.df)) == 0)
+table(colSums(is.na(test.df)) == 0)
+
+# Remove first 7 columns and blank data 
+train.clean <- colnames(train.df[colSums(is.na(train.df)) == 0])[-(1:7)]
+test.clean <- colnames(test.df[colSums(is.na(test.df)) == 0])[-(1:7)]
+
+test.data <- test.df[test.clean]
+
+model <- train.df[train.clean]
+
+# Display clean data
+train.clean
+
+
+```
+
+
+###Cross Validation
+Six young health male participants aged between 20-28 years, with little weight lifting experience were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions:
+
+* Class A - corresponds to the specified execution of the exercise
+* Class B - throwing the elbows to the front 
+* Class C - lifting the dumbbell only halfway
+* Class D - lowering the dumbbell only halfway 
+* Class E - throwing the hips to the front
+
+and controlled manner by using a relatively light dumbbell (1.25kg).
+
+[Read more:] (http://groupware.les.inf.puc-rio.br/har#ixzz4Igy0toT2)
+
+Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6. 
+
+
+Split the dataset into a 60% training and 40% probing dataset.
+
+```{r "Building the Partition"}
+
+#Divide training_model to testing.model (60% and 40% resp.)
+indx <- createDataPartition(y=model$classe, p=0.60, list=FALSE )
+training.model <- model[indx,]
+testing.model <- model[-indx,]
+
+
+```
+
+###Create Random Forest and select the best.
+ In order to build this model make use of parallel processing this will provide speedup in the building of the random forest.
+ 
+```{r "Creating random forest"}
+registerDoParallel()
+  x <- training.model[-ncol(training.model)]
+  y <- training.model$classe
+
+  training.rf <- foreach(ntree=rep(150, 6), .combine=randomForest::combine, .packages='randomForest') %dopar% {
+  randomForest(x, y, ntree=ntree) 
+}
+
+```
+
+```{r "Building Prediction 1"}
+predictions1 <- predict(training.rf, newdata=training.model)
+pdtree1 <- confusionMatrix(predictions1,training.model$classe)
+pdtree1
+```
+
+
+```{r "Plot Prediction 1", fig.cap="Figure 1"}
+plot(pdtree1$table, col = pdtree1$byClass, main = paste("Decision Tree Confusion Matrix: Accuracy =", round(pdtree1$overall['Accuracy'], 4)))
+
+```
+
+
+```{r "Plot Prediction 2", fig.cap="Figure 2"}
+predictions2 <- predict(training.rf, newdata=testing.model)
+pdtree2 <- confusionMatrix(predictions2,testing.model$classe)
+pdtree2
+
+plot(pdtree2$table, col = pdtree2$byClass, main = paste("Decision Tree Confusion Matrix: Accuracy =", round(pdtree2$overall['Accuracy'], 4)))
+
+
+
+```
+
+
+##Conclusions and Test Data Submit
+
+It was found that the  confusion matrix this model is very accurate. The test data was around 99% accurate which would indicate nearly all of the submitted test cases to be correct.
+
+
+```{r}
+
+final_pred <- predict(training.rf, test.data, type = "class")
+final_pred
+
+```
+
+
+
