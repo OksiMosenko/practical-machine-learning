@@ -38,7 +38,7 @@ Due to security concerns with the exchange of R code, your code will not be run 
 
 ##Machine Learning Model
 
-To view html report online, please click here.
+To view html report online, please [click here](http://htmlpreview.github.io/?https://github.com/StarGazer007/practical-machine-learning/blob/master/project-report.html).
 
 [project_report.Rmd](https://github.com/StarGazer007/practical-machine-learning/blob/master/project-report.rmd): R markdown document for course project report.
 
